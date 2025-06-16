@@ -9,7 +9,6 @@ namespace FitnessApp
         private DataGridView bookingsGrid;
         private Button addButton;
         private Button deleteButton;
-        private TextBox searchBox;
 
         public BookingsForm()
         {
@@ -21,16 +20,6 @@ namespace FitnessApp
         {
             this.Text = "Записи на тренировки";
             this.Size = new System.Drawing.Size(800, 600);
-
-            var searchPanel = new Panel { Dock = DockStyle.Top, Height = 40 };
-            searchBox = new TextBox
-            {
-                Location = new System.Drawing.Point(10, 10),
-                Width = 200,
-                PlaceholderText = "Поиск по клиенту..."
-            };
-            searchBox.TextChanged += SearchBox_TextChanged;
-            searchPanel.Controls.Add(searchBox);
 
             bookingsGrid = new DataGridView
             {
@@ -57,10 +46,10 @@ namespace FitnessApp
             deleteButton.Click += DeleteButton_Click;
 
             buttonPanel.Controls.AddRange(new Control[] { addButton, deleteButton });
-            this.Controls.AddRange(new Control[] { searchPanel, bookingsGrid, buttonPanel });
+            this.Controls.AddRange(new Control[] { bookingsGrid, buttonPanel });
         }
 
-        private void LoadBookingsData(string searchTerm = "")
+        private void LoadBookingsData()
         {
             using (var connection = new SQLiteConnection("Data Source=fitness.db;Version=3;"))
             {
@@ -76,14 +65,8 @@ namespace FitnessApp
                       JOIN Clients ON Bookings.ClientId = Clients.Id
                       JOIN Schedule ON Bookings.ScheduleId = Schedule.Id
                       JOIN Workouts ON Schedule.WorkoutId = Workouts.Id
-                      JOIN Trainers ON Schedule.TrainerId = Trainers.Id" +
-                    (string.IsNullOrEmpty(searchTerm) ? "" : " WHERE Clients.Name LIKE @Search"),
+                      JOIN Trainers ON Schedule.TrainerId = Trainers.Id",
                     connection);
-
-                if (!string.IsNullOrEmpty(searchTerm))
-                {
-                    command.Parameters.AddWithValue("@Search", $"%{searchTerm}%");
-                }
 
                 var adapter = new SQLiteDataAdapter(command);
                 var table = new System.Data.DataTable();
@@ -92,17 +75,12 @@ namespace FitnessApp
             }
         }
 
-        private void SearchBox_TextChanged(object sender, EventArgs e)
-        {
-            LoadBookingsData(searchBox.Text);
-        }
-
         private void AddButton_Click(object sender, EventArgs e)
         {
             var addForm = new AddBookingForm();
             if (addForm.ShowDialog() == DialogResult.OK)
             {
-                LoadBookingsData(searchBox.Text);
+                LoadBookingsData();
             }
         }
 
@@ -122,7 +100,7 @@ namespace FitnessApp
                         command.Parameters.AddWithValue("@Id", id);
                         command.ExecuteNonQuery();
                     }
-                    LoadBookingsData(searchBox.Text);
+                    LoadBookingsData();
                 }
             }
         }
