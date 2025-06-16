@@ -111,16 +111,33 @@ namespace ConstructionMaterialsManagement
 
         private void LoadData()
         {
-            using (var conn = Database.GetConnection())
+            try 
             {
-                var sql = @"SELECT Deliveries.Id, Deliveries.DeliveryDate, 
-                           Deliveries.Status, Orders.Id as OrderId
-                           FROM Deliveries 
-                           LEFT JOIN Orders ON Deliveries.OrderId = Orders.Id";
-                var adapter = new SQLiteDataAdapter(sql, conn);
-                var table = new DataTable();
-                adapter.Fill(table);
-                dataGridView1.DataSource = table;
+                using (var conn = Database.GetConnection())
+                {
+                    var sql = @"SELECT Deliveries.Id, Deliveries.DeliveryDate, 
+                               Deliveries.Status, Orders.Id as OrderId, Deliveries.Notes
+                               FROM Deliveries 
+                               LEFT JOIN Orders ON Deliveries.OrderId = Orders.Id";
+                    var adapter = new SQLiteDataAdapter(sql, conn);
+                    var table = new DataTable();
+                    table.Columns.Add("Id", typeof(int));
+                    table.Columns.Add("OrderId", typeof(int));
+                    table.Columns.Add("DeliveryDate", typeof(DateTime));
+                    table.Columns.Add("Status", typeof(string));
+                    table.Columns.Add("Notes", typeof(string));
+                    adapter.Fill(table);
+                    
+                    var bs = new BindingSource();
+                    bs.DataSource = table;
+                    dataGridView1.DataSource = null;
+                    dataGridView1.DataSource = bs;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

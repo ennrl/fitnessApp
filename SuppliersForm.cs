@@ -189,12 +189,30 @@ namespace ConstructionMaterialsManagement
 
         private void LoadData()
         {
-            using (var conn = Database.GetConnection())
+            try 
             {
-                var adapter = new SQLiteDataAdapter("SELECT * FROM Suppliers", conn);
-                var table = new DataTable();
-                adapter.Fill(table);
-                dataGridView1.DataSource = table;
+                using (var conn = Database.GetConnection())
+                {
+                    var adapter = new SQLiteDataAdapter("SELECT Id, Name, Contact, Phone, Address FROM Suppliers", conn);
+                    var table = new DataTable();
+                    table.Columns.Add("Id", typeof(int));
+                    table.Columns.Add("Name", typeof(string));
+                    table.Columns.Add("Contact", typeof(string));
+                    table.Columns.Add("Phone", typeof(string));
+                    table.Columns.Add("Address", typeof(string));
+                    adapter.Fill(table);
+                    
+                    // Создаем новый источник данных
+                    var bs = new BindingSource();
+                    bs.DataSource = table;
+                    dataGridView1.DataSource = null;
+                    dataGridView1.DataSource = bs;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
