@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Forms;
 
-namespace SmartKitchenAssistant
+namespace ConstructionMaterialsManagement
 {
     static class Program
     {
