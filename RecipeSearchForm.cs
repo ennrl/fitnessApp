@@ -77,24 +77,103 @@ namespace SmartKitchenAssistant
 
             this.Controls.Add(mainPanel);
 
-            LoadIngredients(lstIngredients);
+            LoadIngredients();
         }
 
-        private void LoadIngredients(ListBox lstIngredients)
+        private void LoadIngredients()
         {
-            // Здесь будет код загрузки ингредиентов из базы данных
+            ListBox lstIngredients = this.Controls.Find("lstIngredients", true)[0] as ListBox;
+            lstIngredients.SelectionMode = SelectionMode.MultiSimple;
+            lstIngredients.DisplayMember = "Value";
+            lstIngredients.ValueMember = "Key";
+
+            using (var conn = new SQLiteConnection($"Data Source=kitchen_assistant.db;Version=3;"))
+            {
+                conn.Open();
+                using (var cmd = new SQLiteCommand("SELECT Id, Name FROM Ingredients ORDER BY Name", conn))
+                {
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            lstIngredients.Items.Add(new KeyValuePair<int, string>(
+                                reader.GetInt32(0),
+                                reader.GetString(1)
+                            ));
+                        }
+                    }
+                }
+            }
         }
 
         private void BtnSearch_Click(object sender, EventArgs e)
         {
-            // Здесь будет код поиска рецептов
+            ListBox lstIngredients = this.Controls.Find("lstIngredients", true)[0] as ListBox;
+            ListBox lstRecipes = this.Controls.Find("lstRecipes", true)[0] as ListBox;
+
+            if (lstIngredients.SelectedItems.Count == 0)
+            {
+                MessageBox.Show("Пожалуйста, выберите хотя бы один ингредиент", "Предупреждение", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (var conn = new SQLiteConnection($"Data Source=kitchen_assistant.db;Version=3;"))
+            {
+                conn.Open();
+                var selectedIngredientIds = new List<int>();
+                foreach (KeyValuePair<int, string> item in lstIngredients.SelectedItems)
+                {
+                    selectedIngredientIds.Add(item.Key);
+                }
+
+                string ingredientList = string.Join(",", selectedIngredientIds);
+                string sql = @"
+                    SELECT DISTINCT r.Id, r.Name, r.CookingTime, r.Difficulty, r.Calories,
+                    (SELECT COUNT(DISTINCT IngredientId) 
+                     FROM RecipeIngredients 
+                     WHERE RecipeId = r.Id AND IngredientId IN (" + ingredientList + @")) as MatchingIngredients
+                    FROM Recipes r
+                    INNER JOIN RecipeIngredients ri ON r.Id = ri.RecipeId
+                    WHERE ri.IngredientId IN (" + ingredientList + @")
+                    ORDER BY MatchingIngredients DESC, r.Name";
+
+                using (var cmd = new SQLiteCommand(sql, conn))
+                {
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        lstRecipes.Items.Clear();
+                        while (reader.Read())
+                        {
+                            string recipeName = reader.GetString(1);
+                            int cookingTime = reader.GetInt32(2);
+                            string difficulty = reader.GetString(3);
+                            int calories = reader.GetInt32(4);
+                            int matchingCount = reader.GetInt32(5);
+                            
+                            var recipe = new KeyValuePair<int, string>(
+                                reader.GetInt32(0),
+                                $"{recipeName} ({matchingCount} совпадений) - {cookingTime} мин., {difficulty}, {calories} ккал"
+                            );
+                            lstRecipes.Items.Add(recipe);
+                        }
+
+                        if (lstRecipes.Items.Count == 0)
+                        {
+                            MessageBox.Show("Рецепты с выбранными ингредиентами не найдены", 
+                                "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                    }
+                }
+            }
         }
 
         private void LstRecipes_DoubleClick(object sender, EventArgs e)
         {
             if (((ListBox)sender).SelectedItem != null)
             {
-                using (var form = new RecipeDetailsForm(((ListBox)sender).SelectedItem.ToString()))
+                var recipe = (KeyValuePair<int, string>)((ListBox)sender).SelectedItem;
+                using (var form = new RecipeDetailsForm(recipe.Key))
                 {
                     form.ShowDialog();
                 }

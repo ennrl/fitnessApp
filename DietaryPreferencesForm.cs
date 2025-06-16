@@ -6,6 +6,11 @@ namespace SmartKitchenAssistant
 {
     public partial class DietaryPreferencesForm : Form
     {
+        private CheckBox chkVegetarian;
+        private CheckBox chkVegan;
+        private CheckBox chkGlutenFree;
+        private NumericUpDown nudCalories;
+
         public DietaryPreferencesForm()
         {
             InitializeComponent();
@@ -31,28 +36,28 @@ namespace SmartKitchenAssistant
             }
 
             // Создание элементов управления
-            CheckBox chkVegetarian = new CheckBox
+            this.chkVegetarian = new CheckBox
             {
                 Text = "Вегетарианская диета",
                 Location = new System.Drawing.Point(20, 20),
                 Size = new System.Drawing.Size(200, 20)
             };
 
-            CheckBox chkVegan = new CheckBox
+            this.chkVegan = new CheckBox
             {
                 Text = "Веганская диета",
                 Location = new System.Drawing.Point(20, 50),
                 Size = new System.Drawing.Size(200, 20)
             };
 
-            CheckBox chkGlutenFree = new CheckBox
+            this.chkGlutenFree = new CheckBox
             {
                 Text = "Без глютена",
                 Location = new System.Drawing.Point(20, 80),
                 Size = new System.Drawing.Size(200, 20)
             };
 
-            NumericUpDown nudCalories = new NumericUpDown
+            this.nudCalories = new NumericUpDown
             {
                 Location = new System.Drawing.Point(150, 120),
                 Size = new System.Drawing.Size(100, 20),
@@ -108,14 +113,85 @@ namespace SmartKitchenAssistant
 
         private void LoadPreferences()
         {
-            // Здесь будет код загрузки предпочтений из базы данных
+            try
+            {
+                using (var conn = new SQLiteConnection($"Data Source=kitchen_assistant.db;Version=3;"))
+                {
+                    conn.Open();
+
+                    // Создаем таблицу, если она не существует
+                    string createTableSql = @"
+                        CREATE TABLE IF NOT EXISTS UserPreferences (
+                            Id INTEGER PRIMARY KEY,
+                            IsVegetarian BOOLEAN,
+                            IsVegan BOOLEAN,
+                            IsGlutenFree BOOLEAN,
+                            DailyCalories INTEGER
+                        )";
+
+                    using (var cmd = new SQLiteCommand(createTableSql, conn))
+                    {
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    // Загружаем предпочтения
+                    string sql = "SELECT IsVegetarian, IsVegan, IsGlutenFree, DailyCalories FROM UserPreferences WHERE Id = 1";
+                    using (var cmd = new SQLiteCommand(sql, conn))
+                    {
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                chkVegetarian.Checked = reader.GetBoolean(0);
+                                chkVegan.Checked = reader.GetBoolean(1);
+                                chkGlutenFree.Checked = reader.GetBoolean(2);
+                                nudCalories.Value = reader.GetInt32(3);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при загрузке предпочтений: {ex.Message}", 
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void BtnSave_Click(object sender, EventArgs e)
         {
-            // Здесь будет код сохранения предпочтений в базу данных
-            MessageBox.Show("Предпочтения сохранены", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            this.Close();
+            try
+            {
+                using (var conn = new SQLiteConnection($"Data Source=kitchen_assistant.db;Version=3;"))
+                {
+                    conn.Open();
+                    
+                    // Сохраняем или обновляем предпочтения
+                    string sql = @"
+                        INSERT OR REPLACE INTO UserPreferences 
+                        (Id, IsVegetarian, IsVegan, IsGlutenFree, DailyCalories)
+                        VALUES (1, @isVegetarian, @isVegan, @isGlutenFree, @dailyCalories)";
+
+                    using (var cmd = new SQLiteCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@isVegetarian", chkVegetarian.Checked);
+                        cmd.Parameters.AddWithValue("@isVegan", chkVegan.Checked);
+                        cmd.Parameters.AddWithValue("@isGlutenFree", chkGlutenFree.Checked);
+                        cmd.Parameters.AddWithValue("@dailyCalories", (int)nudCalories.Value);
+                        
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    MessageBox.Show("Предпочтения успешно сохранены", "Успех", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при сохранении предпочтений: {ex.Message}", 
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

@@ -6,11 +6,17 @@ namespace SmartKitchenAssistant
 {
     public partial class RecipeDetailsForm : Form
     {
+        private int recipeId;
         private string recipeName;
+        private Label lblTime;
+        private Label lblCalories;
+        private ListBox lstIngredients;
+        private TextBox txtInstructions;
+        private Label lblName;
 
-        public RecipeDetailsForm(string recipeName)
+        public RecipeDetailsForm(int recipeId)
         {
-            this.recipeName = recipeName;
+            this.recipeId = recipeId;
             InitializeComponent();
         }
 
@@ -32,9 +38,9 @@ namespace SmartKitchenAssistant
             mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
             // Создание элементов управления
-            Label lblName = new Label
+            lblName = new Label
             {
-                Text = recipeName,
+                Text = "Загрузка...",
                 Dock = DockStyle.Fill,
                 Font = new System.Drawing.Font(this.Font.FontFamily, 16, System.Drawing.FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleCenter
@@ -43,46 +49,42 @@ namespace SmartKitchenAssistant
             GroupBox gbIngredients = new GroupBox
             {
                 Text = "Ингредиенты",
-                Location = new System.Drawing.Point(20, 60),
-                Size = new System.Drawing.Size(540, 200)
+                Dock = DockStyle.Fill
             };
 
-            ListBox lstIngredients = new ListBox
+            lstIngredients = new ListBox
             {
-                Location = new System.Drawing.Point(10, 20),
-                Size = new System.Drawing.Size(520, 170),
-                Parent = gbIngredients
+                Dock = DockStyle.Fill,
+                Margin = new Padding(10)
             };
+            gbIngredients.Controls.Add(lstIngredients);
 
             GroupBox gbInstructions = new GroupBox
             {
                 Text = "Инструкция приготовления",
-                Location = new System.Drawing.Point(20, 270),
-                Size = new System.Drawing.Size(540, 300)
+                Dock = DockStyle.Fill
             };
 
-            TextBox txtInstructions = new TextBox
+            txtInstructions = new TextBox
             {
                 Multiline = true,
                 ReadOnly = true,
                 ScrollBars = ScrollBars.Vertical,
-                Location = new System.Drawing.Point(10, 20),
-                Size = new System.Drawing.Size(520, 270),
-                Parent = gbInstructions
+                Dock = DockStyle.Fill,
+                Margin = new Padding(10)
+            };
+            gbInstructions.Controls.Add(txtInstructions);
+
+            lblTime = new Label
+            {
+                Text = "Время приготовления: загрузка...",
+                AutoSize = true
             };
 
-            Label lblTime = new Label
+            lblCalories = new Label
             {
-                Text = "Время приготовления: ",
-                Location = new System.Drawing.Point(20, 580),
-                Size = new System.Drawing.Size(200, 20)
-            };
-
-            Label lblCalories = new Label
-            {
-                Text = "Калорийность: ",
-                Location = new System.Drawing.Point(20, 610),
-                Size = new System.Drawing.Size(200, 20)
+                Text = "Калорийность: загрузка...",
+                AutoSize = true
             };
 
             // Создаем панель для информации
@@ -96,10 +98,6 @@ namespace SmartKitchenAssistant
             infoPanel.Controls.Add(lblTime, 0, 0);
             infoPanel.Controls.Add(lblCalories, 1, 0);
 
-            // Настраиваем GroupBox'ы
-            gbIngredients.Dock = DockStyle.Fill;
-            gbInstructions.Dock = DockStyle.Fill;
-            
             // Добавление элементов управления на форму
             mainPanel.Controls.Add(lblName, 0, 0);
             mainPanel.Controls.Add(gbIngredients, 0, 1);
@@ -108,12 +106,86 @@ namespace SmartKitchenAssistant
             
             this.Controls.Add(mainPanel);
 
-            LoadRecipeDetails();
+            // Загружаем данные после создания всех контролов
+            this.Load += (s, e) => LoadRecipeDetails();
         }
 
         private void LoadRecipeDetails()
         {
-            // Здесь будет код загрузки деталей рецепта из базы данных
+            try
+            {
+                using (var conn = new SQLiteConnection($"Data Source=kitchen_assistant.db;Version=3;"))
+                {
+                    conn.Open();
+                    
+                    // Загружаем основную информацию о рецепте
+                    string sql = @"SELECT Name, Instructions, CookingTime, Calories, Difficulty 
+                                 FROM Recipes WHERE Id = @id";
+                    
+                    using (var cmd = new SQLiteCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", recipeId);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                recipeName = reader.GetString(0);
+                                txtInstructions.Text = reader.GetString(1);
+                                int cookingTime = reader.GetInt32(2);
+                                int calories = reader.GetInt32(3);
+                                string difficulty = reader.GetString(4);
+                                
+                                lblName.Text = recipeName;
+                                this.Text = recipeName;
+                                lblTime.Text = $"Время приготовления: {cookingTime} минут";
+                                lblCalories.Text = $"Калорийность: {calories} ккал";
+                                
+                                // Добавляем сложность к заголовку
+                                this.Text += $" (Сложность: {difficulty})";
+                            }
+                            else
+                            {
+                                MessageBox.Show("Рецепт не найден", "Ошибка", 
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                this.Close();
+                                return;
+                            }
+                        }
+                    }
+
+                    // Загружаем ингредиенты рецепта с их количеством и единицами измерения
+                    sql = @"SELECT i.Name, ri.Amount, i.Unit 
+                           FROM RecipeIngredients ri 
+                           JOIN Ingredients i ON ri.IngredientId = i.Id 
+                           WHERE ri.RecipeId = @id
+                           ORDER BY i.Name";
+
+                    using (var cmd = new SQLiteCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", recipeId);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            lstIngredients.Items.Clear();
+                            while (reader.Read())
+                            {
+                                string ingredientName = reader.GetString(0);
+                                decimal amount = reader.GetDecimal(1);
+                                string unit = reader.GetString(2);
+                                
+                                // Форматируем количество без лишних нулей после запятой
+                                string amountStr = amount.ToString("0.##");
+                                lstIngredients.Items.Add($"{ingredientName}: {amountStr} {unit}");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при загрузке рецепта: {ex.Message}", 
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                this.Close();
+            }
         }
     }
 }
