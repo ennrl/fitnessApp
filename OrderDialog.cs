@@ -15,24 +15,20 @@ namespace ConstructionMaterialsManagement
         private Button btnCancel;
         private DataGridView dgvMaterials;
         private DataTable materialsTable;
-        
+
         public int? SupplierId { get; private set; }
         public DateTime OrderDate { get; private set; }
         public string Status { get; private set; }
         public DataTable OrderDetails { get; private set; }
 
-        public OrderDialog(int? supplierId = null, DateTime? orderDate = null, string status = "Новый")
+        public OrderDialog()
         {
             InitializeComponent();
             LoadSuppliers();
             LoadMaterials();
 
-            if (supplierId.HasValue)
-            {
-                cmbSupplier.SelectedValue = supplierId;
-                dtpOrderDate.Value = orderDate ?? DateTime.Now;
-                cmbStatus.Text = status;
-            }
+            dtpOrderDate.Value = DateTime.Now;
+            cmbStatus.SelectedIndex = 0;
         }
 
         private void InitializeComponent()
@@ -51,33 +47,15 @@ namespace ConstructionMaterialsManagement
             var lblStatus = new Label() { Text = "Статус:", Left = 10, Top = 80 };
             cmbStatus = new ComboBox() { Left = 120, Top = 80, Width = 250 };
             cmbStatus.Items.AddRange(new string[] { "Новый", "В обработке", "Выполнен", "Отменен" });
-            cmbStatus.SelectedIndex = 0;
 
-            dgvMaterials = new DataGridView() 
-            { 
-                Left = 10, 
-                Top = 110, 
-                Width = 760, 
-                Height = 380,
-                AllowUserToDeleteRows = true,
-                AutoGenerateColumns = false
-            };
-            
-            dgvMaterials.CellValueChanged += (s, e) =>
+            dgvMaterials = new DataGridView()
             {
-                if (e.RowIndex >= 0 && e.ColumnIndex == 0) // MaterialId column
-                {
-                    var row = dgvMaterials.Rows[e.RowIndex];
-                    if (row.Cells[0].Value != null)
-                    {
-                        var materialId = Convert.ToInt32(row.Cells[0].Value);
-                        var material = materialsTable.Select($"Id = {materialId}").FirstOrDefault();
-                        if (material != null)
-                        {
-                            row.Cells["Price"].Value = material["Price"];
-                        }
-                    }
-                }
+                Left = 10,
+                Top = 110,
+                Width = 760,
+                Height = 380,
+                AllowUserToAddRows = true,
+                AutoGenerateColumns = false
             };
 
             btnSave = new Button() { Text = "Сохранить", Left = 300, Top = 520 };
@@ -86,7 +64,7 @@ namespace ConstructionMaterialsManagement
             btnSave.Click += BtnSave_Click;
             btnCancel.Click += BtnCancel_Click;
 
-            this.Controls.AddRange(new Control[] { 
+            this.Controls.AddRange(new Control[] {
                 lblSupplier, cmbSupplier,
                 lblDate, dtpOrderDate,
                 lblStatus, cmbStatus,
@@ -118,12 +96,8 @@ namespace ConstructionMaterialsManagement
 
                 OrderDetails = new DataTable();
                 OrderDetails.Columns.Add("MaterialId", typeof(int));
-                OrderDetails.Columns.Add("MaterialName", typeof(string));
                 OrderDetails.Columns.Add("Quantity", typeof(int));
                 OrderDetails.Columns.Add("Price", typeof(decimal));
-                OrderDetails.Columns.Add("Total", typeof(decimal), "Quantity * Price");
-
-                dgvMaterials.DataSource = OrderDetails;
 
                 var materialColumn = new DataGridViewComboBoxColumn()
                 {
@@ -132,20 +106,23 @@ namespace ConstructionMaterialsManagement
                     DisplayMember = "Name",
                     DataPropertyName = "MaterialId",
                     HeaderText = "Материал",
-                    Width = 200
+                    Width = 300
                 };
 
+                dgvMaterials.DataSource = OrderDetails;
                 dgvMaterials.Columns.Clear();
                 dgvMaterials.Columns.Add(materialColumn);
                 dgvMaterials.Columns.Add(new DataGridViewTextBoxColumn()
                 {
                     Name = "Quantity",
+                    DataPropertyName = "Quantity",
                     HeaderText = "Количество",
                     Width = 100
                 });
                 dgvMaterials.Columns.Add(new DataGridViewTextBoxColumn()
                 {
                     Name = "Price",
+                    DataPropertyName = "Price",
                     HeaderText = "Цена",
                     Width = 100,
                     ReadOnly = true
@@ -157,6 +134,37 @@ namespace ConstructionMaterialsManagement
                     Width = 100,
                     ReadOnly = true
                 });
+
+                dgvMaterials.CellValueChanged += (s, e) =>
+                {
+                    if (e.RowIndex >= 0 && e.ColumnIndex == 0)
+                    {
+                        var row = dgvMaterials.Rows[e.RowIndex];
+                        if (row.Cells[0].Value != null)
+                        {
+                            var materialId = Convert.ToInt32(row.Cells[0].Value);
+                            var material = materialsTable.Select($"Id = {materialId}").FirstOrDefault();
+                            if (material != null)
+                            {
+                                row.Cells["Price"].Value = material["Price"];
+                            }
+                        }
+                    }
+                };
+
+                dgvMaterials.CellValueChanged += (s, e) =>
+                {
+                    if (e.RowIndex >= 0)
+                    {
+                        var row = dgvMaterials.Rows[e.RowIndex];
+                        if (row.Cells["Price"].Value != null && row.Cells["Quantity"].Value != null)
+                        {
+                            var price = Convert.ToDecimal(row.Cells["Price"].Value);
+                            var quantity = Convert.ToInt32(row.Cells["Quantity"].Value);
+                            row.Cells["Total"].Value = price * quantity;
+                        }
+                    }
+                };
 
                 dgvMaterials.DataError += (s, e) => { e.ThrowException = false; };
             }
@@ -170,33 +178,13 @@ namespace ConstructionMaterialsManagement
                 return;
             }
 
-            if (OrderDetails.Rows.Count == 0)
-            {
-                MessageBox.Show("Добавьте материалы в заказ!");
-                return;
-            }
-
             try
             {
                 SupplierId = Convert.ToInt32(cmbSupplier.SelectedValue);
                 OrderDate = dtpOrderDate.Value;
                 Status = cmbStatus.Text;
-                
-                foreach (DataRow row in OrderDetails.Rows)
-                {
-                    if (row.RowState != DataRowState.Deleted)
-                    {
-                        if (row["MaterialId"] == DBNull.Value || 
-                            row["Quantity"] == DBNull.Value ||
-                            Convert.ToInt32(row["Quantity"]) <= 0)
-                        {
-                            MessageBox.Show("Заполните все данные в таблице материалов корректно!", 
-                                "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                            return;
-                        }
-                    }
-                }
 
+                OrderDetails.AcceptChanges();
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
@@ -217,43 +205,27 @@ namespace ConstructionMaterialsManagement
         {
             using (var conn = Database.GetConnection())
             {
-                // Загружаем основные данные заказа
-                var orderSql = @"SELECT SupplierId, OrderDate, Status 
-                                FROM Orders WHERE Id = @OrderId";
-                using (var cmd = new SQLiteCommand(orderSql, conn))
+                var cmd = new SQLiteCommand(
+                    "SELECT SupplierId, OrderDate, Status FROM Orders WHERE Id = @OrderId", conn);
+                cmd.Parameters.AddWithValue("@OrderId", orderId);
+
+                using (var reader = cmd.ExecuteReader())
                 {
-                    cmd.Parameters.AddWithValue("@OrderId", orderId);
-                    using (var reader = cmd.ExecuteReader())
+                    if (reader.Read())
                     {
-                        if (reader.Read())
-                        {
-                            cmbSupplier.SelectedValue = reader["SupplierId"];
-                            dtpOrderDate.Value = Convert.ToDateTime(reader["OrderDate"]);
-                            cmbStatus.Text = reader["Status"].ToString();
-                        }
+                        cmbSupplier.SelectedValue = reader.GetInt32(0);
+                        dtpOrderDate.Value = reader.GetDateTime(1);
+                        cmbStatus.Text = reader.GetString(2);
                     }
                 }
 
-                // Загружаем детали заказа
-                var detailsSql = @"SELECT MaterialId, Quantity, Price
-                                 FROM OrderDetails 
-                                 WHERE OrderId = @OrderId";
-                
-                var adapter = new SQLiteDataAdapter(detailsSql, conn);
-                adapter.SelectCommand.Parameters.AddWithValue("@OrderId", orderId);
-
-                var detailsTable = new DataTable();
-                adapter.Fill(detailsTable);
+                var detailsAdapter = new SQLiteDataAdapter(
+                    "SELECT MaterialId, Quantity, Price FROM OrderDetails WHERE OrderId = @OrderId", conn);
+                detailsAdapter.SelectCommand.Parameters.AddWithValue("@OrderId", orderId);
 
                 OrderDetails.Clear();
-                foreach (DataRow detailRow in detailsTable.Rows)
-                {
-                    var newRow = OrderDetails.NewRow();
-                    newRow["MaterialId"] = detailRow["MaterialId"];
-                    newRow["Quantity"] = detailRow["Quantity"];
-                    newRow["Price"] = detailRow["Price"];
-                    OrderDetails.Rows.Add(newRow);
-                }
+                detailsAdapter.Fill(OrderDetails);
             }
         }
     }
+}
