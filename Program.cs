@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Forms;
 
-namespace FitnessApp
+namespace SmartKitchenAssistant
 {
     static class Program
     {
@@ -10,7 +10,6 @@ namespace FitnessApp
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Database.InitializeDatabase();
             Application.Run(new MainForm());
         }
     }
