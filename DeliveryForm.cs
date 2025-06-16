@@ -29,6 +29,56 @@ namespace ConstructionMaterialsManagement
             dataGridView1.AllowUserToAddRows = false;
             dataGridView1.ReadOnly = true;
             dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView1.AutoGenerateColumns = false;
+            
+            // Настройка колонок
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Id",
+                DataPropertyName = "Id",
+                HeaderText = "ID",
+                Width = 50
+            });
+            
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "OrderId",
+                DataPropertyName = "OrderId",
+                HeaderText = "№ Заказа",
+                Width = 100
+            });
+            
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "DeliveryDate",
+                DataPropertyName = "DeliveryDate",
+                HeaderText = "Дата доставки",
+                Width = 150,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "d" }
+            });
+            
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Status",
+                DataPropertyName = "Status",
+                HeaderText = "Статус",
+                Width = 150
+            });
+
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Notes",
+                DataPropertyName = "Notes",
+                HeaderText = "Примечания",
+                Width = 200
+            });
+
+            // Добавляем обработчик ошибок
+            dataGridView1.DataError += (s, e) => 
+            {
+                e.ThrowException = false;
+            };
+
             this.Controls.Add(dataGridView1);
 
             var panel = new Panel();

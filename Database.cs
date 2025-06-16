@@ -6,7 +6,7 @@ namespace ConstructionMaterialsManagement
     public class Database
     {
         private static string dbPath = "construction.db";
-        private static SQLiteConnection connection;
+        private static string connectionString;
 
         public static void Initialize()
         {
@@ -15,7 +15,7 @@ namespace ConstructionMaterialsManagement
                 SQLiteConnection.CreateFile(dbPath);
                 CreateTables();
             }
-            connection = new SQLiteConnection($"Data Source={dbPath};Version=3;");
+            connectionString = $"Data Source={dbPath};Version=3;";
         }
 
         private static void CreateTables()
@@ -76,6 +76,7 @@ namespace ConstructionMaterialsManagement
 
         public static SQLiteConnection GetConnection()
         {
+            var connection = new SQLiteConnection(connectionString);
             if (connection.State != System.Data.ConnectionState.Open)
                 connection.Open();
             return connection;
