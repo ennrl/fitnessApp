@@ -32,30 +32,21 @@ namespace SmartKitchenAssistant
             mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
             // Создание элементов управления
-            this.calendar = new MonthCalendar
-            {
-                Dock = DockStyle.Top,
-                MaxSelectionCount = 1
-            };
-            calendar.DateSelected += Calendar_DateSelected;
+            this.calendar = new MonthCalendar();
+            this.calendar.Dock = DockStyle.Top;
+            this.calendar.MaxSelectionCount = 1;
+            this.calendar.DateSelected += Calendar_DateSelected;
 
-            this.cmbMealType = new ComboBox
-            {
-                Location = new System.Drawing.Point(250, 20),
-                Size = new System.Drawing.Size(150, 20)
-            };
-            cmbMealType.Items.AddRange(new string[] { "Завтрак", "Обед", "Ужин" });
+            this.cmbMealType = new ComboBox();
+            this.cmbMealType.Dock = DockStyle.Fill;
+            this.cmbMealType.Items.AddRange(new string[] { "Завтрак", "Обед", "Ужин" });
 
-            ListBox lstMeals = new ListBox
-            {
-                Location = new System.Drawing.Point(250, 50),
-                Size = new System.Drawing.Size(500, 400)
-            };
+            this.lstMeals = new ListBox();
+            this.lstMeals.Dock = DockStyle.Fill;
 
             Button btnAddMeal = new Button
             {
                 Text = "Добавить блюдо",
-                Location = new System.Drawing.Point(250, 470),
                 Size = new System.Drawing.Size(150, 30)
             };
             btnAddMeal.Click += BtnAddMeal_Click;
@@ -63,7 +54,6 @@ namespace SmartKitchenAssistant
             Button btnGeneratePlan = new Button
             {
                 Text = "Сгенерировать план на неделю",
-                Location = new System.Drawing.Point(420, 470),
                 Size = new System.Drawing.Size(200, 30)
             };
             btnGeneratePlan.Click += BtnGeneratePlan_Click;
@@ -80,10 +70,6 @@ namespace SmartKitchenAssistant
             rightPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             rightPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             rightPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
-            // Настраиваем свойства элементов
-            cmbMealType.Dock = DockStyle.Fill;
-            lstMeals.Dock = DockStyle.Fill;
 
             FlowLayoutPanel buttonPanel = new FlowLayoutPanel
             {
@@ -144,28 +130,6 @@ namespace SmartKitchenAssistant
                             }
                         }
                     }
-
-                    // Проверяем общую калорийность за день
-                    sql = @"
-                        SELECT SUM(r.Calories)
-                        FROM MealPlans mp
-                        JOIN Recipes r ON mp.RecipeId = r.Id
-                        WHERE date(mp.Date) = date(@date)";
-
-                    using (var cmd = new SQLiteCommand(sql, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@date", e.Start.ToString("yyyy-MM-dd"));
-                        object result = cmd.ExecuteScalar();
-                        if (result != DBNull.Value)
-                        {
-                            int totalCalories = Convert.ToInt32(result);
-                            if (lstMeals.Items.Count > 0)
-                            {
-                                lstMeals.Items.Add("");
-                                lstMeals.Items.Add($"Общая калорийность за день: {totalCalories} ккал");
-                            }
-                        }
-                    }
                 }
             }
             catch (Exception ex)
@@ -186,7 +150,7 @@ namespace SmartKitchenAssistant
 
             using (var form = new RecipeSearchForm())
             {
-                if (form.ShowDialog() == DialogResult.OK)
+                if (form.ShowDialog() == DialogResult.OK && form.SelectedRecipeId.HasValue)
                 {
                     try
                     {
@@ -227,7 +191,7 @@ namespace SmartKitchenAssistant
                             using (var cmd = new SQLiteCommand(sql, conn))
                             {
                                 cmd.Parameters.AddWithValue("@date", calendar.SelectionStart.ToString("yyyy-MM-dd"));
-                                cmd.Parameters.AddWithValue("@recipeId", form.SelectedRecipeId);
+                                cmd.Parameters.AddWithValue("@recipeId", form.SelectedRecipeId.Value);
                                 cmd.Parameters.AddWithValue("@mealType", cmbMealType.SelectedItem.ToString());
                                 cmd.ExecuteNonQuery();
                             }
@@ -309,7 +273,7 @@ namespace SmartKitchenAssistant
                             }
 
                             transaction.Commit();
-                            LoadMealsForDate(calendar.SelectionStart);
+                            Calendar_DateSelected(calendar, new DateRangeEventArgs(calendar.SelectionStart, calendar.SelectionStart));
                             MessageBox.Show("План питания на неделю успешно сгенерирован!", 
                                 "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }

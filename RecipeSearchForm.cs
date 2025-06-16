@@ -6,6 +6,7 @@ namespace SmartKitchenAssistant
 {
     public partial class RecipeSearchForm : Form
     {
+        public int? SelectedRecipeId { get; private set; }
         public RecipeSearchForm()
         {
             InitializeComponent();
@@ -154,11 +155,23 @@ namespace SmartKitchenAssistant
                             var recipe = new KeyValuePair<int, string>(
                                 reader.GetInt32(0),
                                 $"{recipeName} ({matchingCount} совпадений) - {cookingTime} мин., {difficulty}, {calories} ккал"
-                            );
-                            lstRecipes.Items.Add(recipe);
-                        }
+                            );                                lstRecipes.Items.Add(recipe);
+                            }
 
-                        if (lstRecipes.Items.Count == 0)
+                            if (lstRecipes.Items.Count > 0)
+                            {
+                                lstRecipes.DoubleClick += (s, args) => 
+                                {
+                                    if (lstRecipes.SelectedItem != null)
+                                    {
+                                        var selectedRecipe = (KeyValuePair<int, string>)lstRecipes.SelectedItem;
+                                        SelectedRecipeId = selectedRecipe.Key;
+                                        DialogResult = DialogResult.OK;
+                                        Close();
+                                    }
+                                };
+                            }
+                            else
                         {
                             MessageBox.Show("Рецепты с выбранными ингредиентами не найдены", 
                                 "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
