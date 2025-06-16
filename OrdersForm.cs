@@ -272,11 +272,20 @@ namespace ConstructionMaterialsManagement
         public string Status { get; private set; }
         public DataTable OrderDetails { get; private set; }
 
+        private DataTable materialsTable; // Добавить поле для хранения материалов
+
         public OrderDialog(int? supplierId = null, DateTime? orderDate = null, string status = "Новый")
         {
             InitializeComponent();
             LoadSuppliers();
             LoadMaterials();
+
+            // Добавляем обработчик ошибок
+            dgvMaterials.DataError += (s, e) => 
+            {
+                e.ThrowException = false;
+            };
+
             if (supplierId.HasValue)
             {
                 cmbSupplier.SelectedValue = supplierId;
@@ -345,7 +354,7 @@ namespace ConstructionMaterialsManagement
             using (var conn = Database.GetConnection())
             {
                 var adapter = new SQLiteDataAdapter("SELECT Id, Name, Price FROM Materials", conn);
-                var materialsTable = new DataTable();
+                materialsTable = new DataTable();
                 adapter.Fill(materialsTable);
 
                 OrderDetails = new DataTable();
@@ -355,22 +364,25 @@ namespace ConstructionMaterialsManagement
                 OrderDetails.Columns.Add("Price", typeof(decimal));
                 OrderDetails.Columns.Add("Total", typeof(decimal), "Quantity * Price");
 
+                dgvMaterials.DataSource = OrderDetails;
+                dgvMaterials.Columns.Clear();
+
                 var materialColumn = new DataGridViewComboBoxColumn()
                 {
                     DataSource = materialsTable,
                     ValueMember = "Id",
                     DisplayMember = "Name",
                     DataPropertyName = "MaterialId",
-                    HeaderText = "Материал"
+                    HeaderText = "Материал",
+                    Width = 200
                 };
-
-                dgvMaterials.DataSource = OrderDetails;
-                dgvMaterials.Columns.Clear();
                 dgvMaterials.Columns.Add(materialColumn);
                 dgvMaterials.Columns.Add("Quantity", "Количество");
                 dgvMaterials.Columns.Add("Price", "Цена");
                 dgvMaterials.Columns.Add("Total", "Сумма");
             }
+            // Добавляем обработчик ошибок
+            dgvMaterials.DataError += (s, e) => { e.ThrowException = false; };
         }
 
         private void BtnSave_Click(object sender, EventArgs e)
