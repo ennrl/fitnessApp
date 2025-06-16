@@ -11,11 +11,22 @@ namespace FitnessApp
             InitializeUI();
         }
 
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(800, 600);
+            this.Name = "MainForm";
+            this.Text = "Фитнес-центр";
+            
+            this.ResumeLayout(false);
+            this.PerformLayout();
+        }
+
         private void InitializeUI()
         {
-            this.Text = "Фитнес-центр";
-            this.Size = new System.Drawing.Size(800, 600);
-
             // Создание меню
             MenuStrip mainMenu = new MenuStrip();
             this.MainMenuStrip = mainMenu;
