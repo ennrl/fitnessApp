@@ -18,11 +18,20 @@ namespace SmartKitchenAssistant
             this.Text = "Управление ингредиентами";
             this.Size = new System.Drawing.Size(600, 500);
 
+            TableLayoutPanel mainPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                Padding = new Padding(10)
+            };
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
             // Создаем DataGridView для отображения ингредиентов
             dgvIngredients = new DataGridView
             {
-                Location = new System.Drawing.Point(20, 20),
-                Size = new System.Drawing.Size(540, 350),
+                Dock = DockStyle.Fill,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
                 AllowUserToAddRows = false
             };
@@ -52,8 +61,20 @@ namespace SmartKitchenAssistant
             };
             btnDelete.Click += BtnDelete_Click;
 
+            // Создаем панель для кнопок
+            FlowLayoutPanel buttonPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                AutoSize = true,
+                Margin = new Padding(0, 10, 0, 0)
+            };
+            buttonPanel.Controls.AddRange(new Control[] { btnAdd, btnEdit, btnDelete });
+
             // Добавляем элементы на форму
-            this.Controls.AddRange(new Control[] { dgvIngredients, btnAdd, btnEdit, btnDelete });
+            mainPanel.Controls.Add(dgvIngredients, 0, 0);
+            mainPanel.Controls.Add(buttonPanel, 0, 1);
+            this.Controls.Add(mainPanel);
 
             LoadIngredients();
         }

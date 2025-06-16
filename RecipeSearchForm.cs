@@ -16,12 +16,24 @@ namespace SmartKitchenAssistant
             this.Text = "Поиск рецептов";
             this.Size = new System.Drawing.Size(600, 500);
 
+            TableLayoutPanel mainPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 2,
+                Padding = new Padding(10)
+            };
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40F));
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60F));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
             // Создание элементов управления
             Label lblIngredients = new Label
             {
                 Text = "Доступные ингредиенты:",
-                Location = new System.Drawing.Point(20, 20),
-                Size = new System.Drawing.Size(150, 20)
+                AutoSize = true,
+                Dock = DockStyle.Fill
             };
 
             ListBox lstIngredients = new ListBox
@@ -45,11 +57,25 @@ namespace SmartKitchenAssistant
             };
             lstRecipes.DoubleClick += LstRecipes_DoubleClick;
 
+            // Создаем панели для группировки элементов
+            Panel leftPanel = new Panel { Dock = DockStyle.Fill };
+            Panel rightPanel = new Panel { Dock = DockStyle.Fill };
+
+            lstIngredients.Dock = DockStyle.Fill;
+            lstRecipes.Dock = DockStyle.Fill;
+            btnSearch.Dock = DockStyle.Bottom;
+
+            leftPanel.Controls.Add(lstIngredients);
+            leftPanel.Controls.Add(btnSearch);
+            rightPanel.Controls.Add(lstRecipes);
+
             // Добавление элементов управления на форму
-            this.Controls.Add(lblIngredients);
-            this.Controls.Add(lstIngredients);
-            this.Controls.Add(btnSearch);
-            this.Controls.Add(lstRecipes);
+            mainPanel.Controls.Add(lblIngredients, 0, 0);
+            mainPanel.Controls.Add(new Label { Text = "Найденные рецепты:", AutoSize = true }, 1, 0);
+            mainPanel.Controls.Add(leftPanel, 0, 1);
+            mainPanel.Controls.Add(rightPanel, 1, 1);
+
+            this.Controls.Add(mainPanel);
 
             LoadIngredients(lstIngredients);
         }

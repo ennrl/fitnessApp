@@ -19,13 +19,25 @@ namespace SmartKitchenAssistant
             this.Text = "Детали рецепта";
             this.Size = new System.Drawing.Size(600, 700);
 
+            TableLayoutPanel mainPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 4,
+                Padding = new Padding(10)
+            };
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 60F));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
             // Создание элементов управления
             Label lblName = new Label
             {
                 Text = recipeName,
-                Location = new System.Drawing.Point(20, 20),
-                Size = new System.Drawing.Size(540, 30),
-                Font = new System.Drawing.Font(this.Font.FontFamily, 16, System.Drawing.FontStyle.Bold)
+                Dock = DockStyle.Fill,
+                Font = new System.Drawing.Font(this.Font.FontFamily, 16, System.Drawing.FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleCenter
             };
 
             GroupBox gbIngredients = new GroupBox
@@ -73,12 +85,28 @@ namespace SmartKitchenAssistant
                 Size = new System.Drawing.Size(200, 20)
             };
 
+            // Создаем панель для информации
+            TableLayoutPanel infoPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                AutoSize = true
+            };
+            infoPanel.Controls.Add(lblTime, 0, 0);
+            infoPanel.Controls.Add(lblCalories, 1, 0);
+
+            // Настраиваем GroupBox'ы
+            gbIngredients.Dock = DockStyle.Fill;
+            gbInstructions.Dock = DockStyle.Fill;
+            
             // Добавление элементов управления на форму
-            this.Controls.Add(lblName);
-            this.Controls.Add(gbIngredients);
-            this.Controls.Add(gbInstructions);
-            this.Controls.Add(lblTime);
-            this.Controls.Add(lblCalories);
+            mainPanel.Controls.Add(lblName, 0, 0);
+            mainPanel.Controls.Add(gbIngredients, 0, 1);
+            mainPanel.Controls.Add(gbInstructions, 0, 2);
+            mainPanel.Controls.Add(infoPanel, 0, 3);
+            
+            this.Controls.Add(mainPanel);
 
             LoadRecipeDetails();
         }

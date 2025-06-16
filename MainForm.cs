@@ -16,12 +16,32 @@ namespace SmartKitchenAssistant
             this.Text = "Умный кулинарный помощник";
             this.Size = new System.Drawing.Size(800, 600);
 
+            TableLayoutPanel mainPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                Padding = new Padding(20),
+            };
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+
+            FlowLayoutPanel buttonPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                AutoSize = true,
+            };
+
             // Создание кнопок
             Button btnSearchRecipes = new Button
             {
                 Text = "Поиск рецептов",
-                Location = new System.Drawing.Point(50, 50),
-                Size = new System.Drawing.Size(200, 40)
+                Size = new System.Drawing.Size(200, 40),
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                Margin = new Padding(10)
             };
             btnSearchRecipes.Click += BtnSearchRecipes_Click;
 
@@ -58,11 +78,14 @@ namespace SmartKitchenAssistant
             btnManageIngredients.Click += BtnManageIngredients_Click;
 
             // Добавление элементов управления на форму
-            this.Controls.Add(btnSearchRecipes);
-            this.Controls.Add(btnDietaryPreferences);
-            this.Controls.Add(btnMealPlanner);
-            this.Controls.Add(btnAddRecipe);
-            this.Controls.Add(btnManageIngredients);
+            buttonPanel.Controls.Add(btnSearchRecipes);
+            buttonPanel.Controls.Add(btnDietaryPreferences);
+            buttonPanel.Controls.Add(btnMealPlanner);
+            buttonPanel.Controls.Add(btnAddRecipe);
+            buttonPanel.Controls.Add(btnManageIngredients);
+            
+            mainPanel.Controls.Add(buttonPanel, 0, 0);
+            this.Controls.Add(mainPanel);
         }
 
         private void BtnSearchRecipes_Click(object sender, EventArgs e)

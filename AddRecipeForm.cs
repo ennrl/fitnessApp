@@ -19,6 +19,22 @@ namespace SmartKitchenAssistant
             this.Text = "Добавление нового рецепта";
             this.Size = new System.Drawing.Size(700, 800);
 
+            TableLayoutPanel mainPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 7,
+                Padding = new Padding(10)
+            };
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75F));
+            for (int i = 0; i < 7; i++)
+            {
+                mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            }
+            mainPanel.RowStyles[2] = new RowStyle(SizeType.Percent, 30F);
+            mainPanel.RowStyles[4] = new RowStyle(SizeType.Percent, 70F);
+
             // Название рецепта
             Label lblName = new Label
             {
@@ -139,16 +155,53 @@ namespace SmartKitchenAssistant
             btnSave.Click += (s, e) => SaveRecipe(txtName.Text, txtInstructions.Text, 
                 (int)nudTime.Value, cmbDifficulty.Text, (int)nudCalories.Value);
 
-            // Добавление элементов на форму
-            this.Controls.AddRange(new Control[] {
-                lblName, txtName,
-                lblIngredients, cmbIngredients, nudAmount, btnAddIngredient, lstSelectedIngredients,
-                lblInstructions, txtInstructions,
-                lblTime, nudTime,
-                lblDifficulty, cmbDifficulty,
-                lblCalories, nudCalories,
-                btnSave
-            });
+            // Создаем панели для группировки элементов
+            TableLayoutPanel ingredientsPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                AutoSize = true
+            };
+            ingredientsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60F));
+            ingredientsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+            ingredientsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+            ingredientsPanel.Controls.Add(cmbIngredients, 0, 0);
+            ingredientsPanel.Controls.Add(nudAmount, 1, 0);
+            ingredientsPanel.Controls.Add(btnAddIngredient, 2, 0);
+
+            // Настраиваем свойства Dock для контролов
+            txtName.Dock = DockStyle.Fill;
+            lstSelectedIngredients.Dock = DockStyle.Fill;
+            txtInstructions.Dock = DockStyle.Fill;
+            
+            // Добавляем элементы в главную панель
+            mainPanel.Controls.Add(lblName, 0, 0);
+            mainPanel.Controls.Add(txtName, 1, 0);
+            mainPanel.Controls.Add(lblIngredients, 0, 1);
+            mainPanel.Controls.Add(ingredientsPanel, 1, 1);
+            mainPanel.Controls.Add(lstSelectedIngredients, 1, 2);
+            mainPanel.Controls.Add(lblInstructions, 0, 3);
+            mainPanel.Controls.Add(txtInstructions, 1, 3);
+            mainPanel.Controls.Add(lblTime, 0, 4);
+            mainPanel.Controls.Add(nudTime, 1, 4);
+            mainPanel.Controls.Add(lblDifficulty, 0, 5);
+            mainPanel.Controls.Add(cmbDifficulty, 1, 5);
+            mainPanel.Controls.Add(lblCalories, 0, 6);
+            mainPanel.Controls.Add(nudCalories, 1, 6);
+            
+            FlowLayoutPanel buttonPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                FlowDirection = FlowDirection.RightToLeft,
+                AutoSize = true,
+                Padding = new Padding(10)
+            };
+            buttonPanel.Controls.Add(btnSave);
+
+            // Добавляем панели на форму
+            this.Controls.Add(mainPanel);
+            this.Controls.Add(buttonPanel);
 
             LoadIngredients(cmbIngredients);
             

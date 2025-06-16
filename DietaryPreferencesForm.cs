@@ -16,6 +16,20 @@ namespace SmartKitchenAssistant
             this.Text = "Диетические предпочтения";
             this.Size = new System.Drawing.Size(400, 500);
 
+            TableLayoutPanel mainPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 6,
+                Padding = new Padding(10)
+            };
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40F));
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60F));
+            for (int i = 0; i < 6; i++)
+            {
+                mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            }
+
             // Создание элементов управления
             CheckBox chkVegetarian = new CheckBox
             {
@@ -63,12 +77,31 @@ namespace SmartKitchenAssistant
             btnSave.Click += BtnSave_Click;
 
             // Добавление элементов управления на форму
-            this.Controls.Add(chkVegetarian);
-            this.Controls.Add(chkVegan);
-            this.Controls.Add(chkGlutenFree);
-            this.Controls.Add(nudCalories);
-            this.Controls.Add(lblCalories);
-            this.Controls.Add(btnSave);
+            mainPanel.Controls.Add(chkVegetarian, 0, 0);
+            mainPanel.SetColumnSpan(chkVegetarian, 2);
+            
+            mainPanel.Controls.Add(chkVegan, 0, 1);
+            mainPanel.SetColumnSpan(chkVegan, 2);
+            
+            mainPanel.Controls.Add(chkGlutenFree, 0, 2);
+            mainPanel.SetColumnSpan(chkGlutenFree, 2);
+            
+            mainPanel.Controls.Add(lblCalories, 0, 3);
+            mainPanel.Controls.Add(nudCalories, 1, 3);
+            
+            FlowLayoutPanel buttonPanel = new FlowLayoutPanel
+            {
+                FlowDirection = FlowDirection.RightToLeft,
+                Dock = DockStyle.Fill,
+                AutoSize = true,
+                Margin = new Padding(0, 20, 0, 0)
+            };
+            buttonPanel.Controls.Add(btnSave);
+            
+            mainPanel.Controls.Add(buttonPanel, 0, 4);
+            mainPanel.SetColumnSpan(buttonPanel, 2);
+            
+            this.Controls.Add(mainPanel);
 
             LoadPreferences();
         }
