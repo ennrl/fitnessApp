@@ -120,13 +120,21 @@ namespace SmartKitchenAssistant
                         using (var reader = cmd.ExecuteReader())
                         {
                             lstMeals.Items.Clear();
+                            int totalCalories = 0;
                             while (reader.Read())
                             {
                                 string recipeName = reader.GetString(0);
                                 string mealType = reader.GetString(1);
                                 int cookingTime = reader.GetInt32(2);
                                 int calories = reader.GetInt32(3);
+                                totalCalories += calories;
                                 lstMeals.Items.Add($"{mealType}: {recipeName} ({cookingTime} мин., {calories} ккал)");
+                            }
+
+                            if (lstMeals.Items.Count > 0)
+                            {
+                                lstMeals.Items.Add("");
+                                lstMeals.Items.Add($"Общая калорийность за день: {totalCalories} ккал");
                             }
                         }
                     }
@@ -220,11 +228,43 @@ namespace SmartKitchenAssistant
                     {
                         try
                         {
-                            // Получаем список всех рецептов
+                            // Загружаем диетические предпочтения
+                            bool isVegetarian = false;
+                            bool isVegan = false;
+                            bool isGlutenFree = false;
+                            int maxDailyCalories = 5000;
+
+                            string prefsQuery = "SELECT IsVegetarian, IsVegan, IsGlutenFree, DailyCalories FROM UserPreferences WHERE Id = 1";
+                            using (var cmd = new SQLiteCommand(prefsQuery, conn))
+                            {
+                                using (var reader = cmd.ExecuteReader())
+                                {
+                                    if (reader.Read())
+                                    {
+                                        isVegetarian = reader.GetBoolean(0);
+                                        isVegan = reader.GetBoolean(1);
+                                        isGlutenFree = reader.GetBoolean(2);
+                                        maxDailyCalories = reader.GetInt32(3);
+                                    }
+                                }
+                            }
+
+                            // Получаем список подходящих рецептов с учетом диетических предпочтений
                             var recipes = new List<(int id, string name, int calories)>();
-                            string sqlRecipes = "SELECT Id, Name, Calories FROM Recipes ORDER BY RANDOM()";
+                            string sqlRecipes = @"
+                                SELECT Id, Name, Calories 
+                                FROM Recipes 
+                                WHERE 1=1 
+                                    AND (@isVegetarian = 0 OR IsVegetarian = 1)
+                                    AND (@isVegan = 0 OR IsVegan = 1)
+                                    AND (@isGlutenFree = 0 OR IsGlutenFree = 1)
+                                ORDER BY RANDOM()";
                             using (var cmd = new SQLiteCommand(sqlRecipes, conn))
                             {
+                                cmd.Parameters.AddWithValue("@isVegetarian", isVegetarian);
+                                cmd.Parameters.AddWithValue("@isVegan", isVegan);
+                                cmd.Parameters.AddWithValue("@isGlutenFree", isGlutenFree);
+                                
                                 using (var reader = cmd.ExecuteReader())
                                 {
                                     while (reader.Read())

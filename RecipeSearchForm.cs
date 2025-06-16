@@ -7,6 +7,8 @@ namespace SmartKitchenAssistant
     public partial class RecipeSearchForm : Form
     {
         public int? SelectedRecipeId { get; private set; }
+        private ListBox lstIngredients;
+        private ListBox lstRecipes;
         public RecipeSearchForm()
         {
             InitializeComponent();
@@ -37,7 +39,7 @@ namespace SmartKitchenAssistant
                 Dock = DockStyle.Fill
             };
 
-            ListBox lstIngredients = new ListBox
+            this.lstIngredients = new ListBox
             {
                 Location = new System.Drawing.Point(20, 50),
                 Size = new System.Drawing.Size(200, 300)
@@ -51,7 +53,7 @@ namespace SmartKitchenAssistant
             };
             btnSearch.Click += BtnSearch_Click;
 
-            ListBox lstRecipes = new ListBox
+            this.lstRecipes = new ListBox
             {
                 Location = new System.Drawing.Point(250, 50),
                 Size = new System.Drawing.Size(300, 300)
@@ -83,7 +85,6 @@ namespace SmartKitchenAssistant
 
         private void LoadIngredients()
         {
-            ListBox lstIngredients = this.Controls.Find("lstIngredients", true)[0] as ListBox;
             lstIngredients.SelectionMode = SelectionMode.MultiSimple;
             lstIngredients.DisplayMember = "Value";
             lstIngredients.ValueMember = "Key";
@@ -109,8 +110,6 @@ namespace SmartKitchenAssistant
 
         private void BtnSearch_Click(object sender, EventArgs e)
         {
-            ListBox lstIngredients = this.Controls.Find("lstIngredients", true)[0] as ListBox;
-            ListBox lstRecipes = this.Controls.Find("lstRecipes", true)[0] as ListBox;
 
             if (lstIngredients.SelectedItems.Count == 0)
             {
