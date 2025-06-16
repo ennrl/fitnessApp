@@ -10,7 +10,6 @@ namespace FitnessApp
         private Button addButton;
         private Button editButton;
         private Button deleteButton;
-        private TextBox searchBox;
 
         public TrainersForm()
         {
@@ -22,16 +21,6 @@ namespace FitnessApp
         {
             this.Text = "Тренеры";
             this.Size = new System.Drawing.Size(800, 600);
-
-            var searchPanel = new Panel { Dock = DockStyle.Top, Height = 40 };
-            searchBox = new TextBox
-            {
-                Location = new System.Drawing.Point(10, 10),
-                Width = 200,
-                PlaceholderText = "Поиск по имени..."
-            };
-            searchBox.TextChanged += SearchBox_TextChanged;
-            searchPanel.Controls.Add(searchBox);
 
             trainersGrid = new DataGridView
             {
@@ -65,24 +54,16 @@ namespace FitnessApp
             deleteButton.Click += DeleteButton_Click;
 
             buttonPanel.Controls.AddRange(new Control[] { addButton, editButton, deleteButton });
-            this.Controls.AddRange(new Control[] { searchPanel, trainersGrid, buttonPanel });
+            this.Controls.AddRange(new Control[] { trainersGrid, buttonPanel });
         }
 
-        private void LoadTrainersData(string searchTerm = "")
+        private void LoadTrainersData()
         {
             using (var connection = new SQLiteConnection("Data Source=fitness.db;Version=3;"))
             {
                 connection.Open();
                 var command = new SQLiteCommand(
-                    "SELECT Id, Name, Specialization FROM Trainers " +
-                    (string.IsNullOrEmpty(searchTerm) ? "" : "WHERE Name LIKE @Search"),
-                    connection);
-
-                if (!string.IsNullOrEmpty(searchTerm))
-                {
-                    command.Parameters.AddWithValue("@Search", $"%{searchTerm}%");
-                }
-
+                    "SELECT Id, Name, Specialization FROM Trainers", connection);
                 var adapter = new SQLiteDataAdapter(command);
                 var table = new System.Data.DataTable();
                 adapter.Fill(table);
@@ -90,17 +71,12 @@ namespace FitnessApp
             }
         }
 
-        private void SearchBox_TextChanged(object sender, EventArgs e)
-        {
-            LoadTrainersData(searchBox.Text);
-        }
-
         private void AddButton_Click(object sender, EventArgs e)
         {
             var addForm = new AddTrainerForm();
             if (addForm.ShowDialog() == DialogResult.OK)
             {
-                LoadTrainersData(searchBox.Text);
+                LoadTrainersData();
             }
         }
 
@@ -112,7 +88,7 @@ namespace FitnessApp
                 var editForm = new AddTrainerForm(int.Parse(id));
                 if (editForm.ShowDialog() == DialogResult.OK)
                 {
-                    LoadTrainersData(searchBox.Text);
+                    LoadTrainersData();
                 }
             }
         }
@@ -133,7 +109,7 @@ namespace FitnessApp
                         command.Parameters.AddWithValue("@Id", id);
                         command.ExecuteNonQuery();
                     }
-                    LoadTrainersData(searchBox.Text);
+                    LoadTrainersData();
                 }
             }
         }
