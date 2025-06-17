@@ -31,7 +31,6 @@ namespace ConstructionMaterialsManagement
             dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridView1.AutoGenerateColumns = false;
             
-            // Настройка колонок
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Id",
@@ -39,7 +38,7 @@ namespace ConstructionMaterialsManagement
                 HeaderText = "ID",
                 Width = 50
             });
-            
+
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "OrderId",
@@ -47,22 +46,30 @@ namespace ConstructionMaterialsManagement
                 HeaderText = "№ Заказа",
                 Width = 100
             });
-            
+
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "SupplierName",
+                DataPropertyName = "SupplierName",
+                HeaderText = "Поставщик",
+                Width = 200
+            });
+
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "DeliveryDate",
                 DataPropertyName = "DeliveryDate",
-                HeaderText = "Дата доставки",
+                HeaderText = "Дата поставки",
                 Width = 150,
                 DefaultCellStyle = new DataGridViewCellStyle { Format = "d" }
             });
-            
+
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Status",
                 DataPropertyName = "Status",
                 HeaderText = "Статус",
-                Width = 150
+                Width = 100
             });
 
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
@@ -70,15 +77,10 @@ namespace ConstructionMaterialsManagement
                 Name = "Notes",
                 DataPropertyName = "Notes",
                 HeaderText = "Примечания",
-                Width = 200
+                Width = 300
             });
 
-            // Добавляем обработчик ошибок
-            dataGridView1.DataError += (s, e) => 
-            {
-                e.ThrowException = false;
-            };
-
+            dataGridView1.DataError += (s, e) => { e.ThrowException = false; };
             this.Controls.Add(dataGridView1);
 
             var panel = new Panel();
@@ -111,55 +113,59 @@ namespace ConstructionMaterialsManagement
 
         private void LoadData()
         {
-            try 
+            try
             {
                 using (var conn = Database.GetConnection())
                 {
-                    var sql = @"SELECT Deliveries.Id, Deliveries.DeliveryDate, 
-                               Deliveries.Status, Orders.Id as OrderId, Deliveries.Notes
-                               FROM Deliveries 
-                               LEFT JOIN Orders ON Deliveries.OrderId = Orders.Id";
+                    var sql = @"SELECT d.Id, d.OrderId, s.Name as SupplierName, 
+                               d.DeliveryDate, d.Status, d.Notes
+                               FROM Deliveries d
+                               LEFT JOIN Orders o ON d.OrderId = o.Id
+                               LEFT JOIN Suppliers s ON o.SupplierId = s.Id";
                     var adapter = new SQLiteDataAdapter(sql, conn);
                     var table = new DataTable();
-                    table.Columns.Add("Id", typeof(int));
-                    table.Columns.Add("OrderId", typeof(int));
-                    table.Columns.Add("DeliveryDate", typeof(DateTime));
-                    table.Columns.Add("Status", typeof(string));
-                    table.Columns.Add("Notes", typeof(string));
                     adapter.Fill(table);
                     
-                    var bs = new BindingSource();
-                    bs.DataSource = table;
                     dataGridView1.DataSource = null;
-                    dataGridView1.DataSource = bs;
+                    dataGridView1.DataSource = table;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка", 
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void BtnAdd_Click(object sender, EventArgs e)
         {
-            var dialog = new DeliveryDialog();
-            if (dialog.ShowDialog() == DialogResult.OK)
+            using (var dialog = new DeliveryDialog())
             {
-                using (var conn = Database.GetConnection())
+                if (dialog.ShowDialog() == DialogResult.OK)
                 {
-                    var sql = @"INSERT INTO Deliveries (OrderId, DeliveryDate, Status, Notes) 
-                               VALUES (@OrderId, @DeliveryDate, @Status, @Notes)";
-                    using (var cmd = new SQLiteCommand(sql, conn))
+                    try
                     {
-                        cmd.Parameters.AddWithValue("@OrderId", dialog.OrderId);
-                        cmd.Parameters.AddWithValue("@DeliveryDate", dialog.DeliveryDate);
-                        cmd.Parameters.AddWithValue("@Status", dialog.Status);
-                        cmd.Parameters.AddWithValue("@Notes", dialog.Notes);
-                        cmd.ExecuteNonQuery();
+                        using (var conn = Database.GetConnection())
+                        {
+                            using (var cmd = new SQLiteCommand(@"
+                                INSERT INTO Deliveries (OrderId, DeliveryDate, Status, Notes) 
+                                VALUES (@OrderId, @DeliveryDate, @Status, @Notes)", conn))
+                            {
+                                cmd.Parameters.AddWithValue("@OrderId", dialog.OrderId);
+                                cmd.Parameters.AddWithValue("@DeliveryDate", dialog.DeliveryDate);
+                                cmd.Parameters.AddWithValue("@Status", dialog.Status);
+                                cmd.Parameters.AddWithValue("@Notes", dialog.Notes);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+                        LoadData();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Ошибка добавления поставки: {ex.Message}", "Ошибка",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
-                LoadData();
             }
         }
 
@@ -168,32 +174,42 @@ namespace ConstructionMaterialsManagement
             if (dataGridView1.SelectedRows.Count > 0)
             {
                 var row = dataGridView1.SelectedRows[0];
-                var dialog = new DeliveryDialog(
+                using (var dialog = new DeliveryDialog(
                     Convert.ToInt32(row.Cells["OrderId"].Value),
                     Convert.ToDateTime(row.Cells["DeliveryDate"].Value),
                     row.Cells["Status"].Value.ToString(),
-                    row.Cells["Notes"]?.Value?.ToString() ?? ""
-                );
-
-                if (dialog.ShowDialog() == DialogResult.OK)
+                    row.Cells["Notes"].Value?.ToString() ?? ""))
                 {
-                    using (var conn = Database.GetConnection())
+                    if (dialog.ShowDialog() == DialogResult.OK)
                     {
-                        var sql = @"UPDATE Deliveries 
-                                   SET OrderId = @OrderId, DeliveryDate = @DeliveryDate, 
-                                       Status = @Status, Notes = @Notes 
-                                   WHERE Id = @Id";
-                        using (var cmd = new SQLiteCommand(sql, conn))
+                        try
                         {
-                            cmd.Parameters.AddWithValue("@Id", row.Cells["Id"].Value);
-                            cmd.Parameters.AddWithValue("@OrderId", dialog.OrderId);
-                            cmd.Parameters.AddWithValue("@DeliveryDate", dialog.DeliveryDate);
-                            cmd.Parameters.AddWithValue("@Status", dialog.Status);
-                            cmd.Parameters.AddWithValue("@Notes", dialog.Notes);
-                            cmd.ExecuteNonQuery();
+                            using (var conn = Database.GetConnection())
+                            {
+                                using (var cmd = new SQLiteCommand(@"
+                                    UPDATE Deliveries 
+                                    SET OrderId = @OrderId, 
+                                        DeliveryDate = @DeliveryDate, 
+                                        Status = @Status, 
+                                        Notes = @Notes 
+                                    WHERE Id = @Id", conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@Id", row.Cells["Id"].Value);
+                                    cmd.Parameters.AddWithValue("@OrderId", dialog.OrderId);
+                                    cmd.Parameters.AddWithValue("@DeliveryDate", dialog.DeliveryDate);
+                                    cmd.Parameters.AddWithValue("@Status", dialog.Status);
+                                    cmd.Parameters.AddWithValue("@Notes", dialog.Notes);
+                                    cmd.ExecuteNonQuery();
+                                }
+                            }
+                            LoadData();
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Ошибка обновления поставки: {ex.Message}", "Ошибка",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
-                    LoadData();
                 }
             }
         }
@@ -205,121 +221,24 @@ namespace ConstructionMaterialsManagement
                 if (MessageBox.Show("Удалить выбранную поставку?", "Подтверждение", 
                     MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
-                    var id = dataGridView1.SelectedRows[0].Cells["Id"].Value.ToString();
-                    using (var conn = Database.GetConnection())
-                    using (var cmd = new SQLiteCommand("DELETE FROM Deliveries WHERE Id = @Id", conn))
+                    try
                     {
-                        cmd.Parameters.AddWithValue("@Id", id);
-                        cmd.ExecuteNonQuery();
+                        var id = dataGridView1.SelectedRows[0].Cells["Id"].Value;
+                        using (var conn = Database.GetConnection())
+                        using (var cmd = new SQLiteCommand("DELETE FROM Deliveries WHERE Id = @Id", conn))
+                        {
+                            cmd.Parameters.AddWithValue("@Id", id);
+                            cmd.ExecuteNonQuery();
+                        }
+                        LoadData();
                     }
-                    LoadData();
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Ошибка удаления поставки: {ex.Message}", "Ошибка",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
             }
-        }
-    }
-
-    public class DeliveryDialog : Form
-    {
-        private ComboBox cmbOrder;
-        private DateTimePicker dtpDeliveryDate;
-        private ComboBox cmbStatus;
-        private TextBox txtNotes;
-        private Button btnSave;
-        private Button btnCancel;
-
-        public int? OrderId { get; private set; }
-        public DateTime DeliveryDate { get; private set; }
-        public string Status { get; private set; }
-        public string Notes { get; private set; }
-
-        public DeliveryDialog(int? orderId = null, DateTime? deliveryDate = null, 
-            string status = "В обработке", string notes = "")
-        {
-            InitializeComponent();
-            LoadOrders();
-            
-            if (orderId.HasValue)
-            {
-                cmbOrder.SelectedValue = orderId;
-                dtpDeliveryDate.Value = deliveryDate ?? DateTime.Now;
-                cmbStatus.Text = status;
-                txtNotes.Text = notes;
-            }
-        }
-
-        private void InitializeComponent()
-        {
-            this.Text = "Поставка";
-            this.Size = new System.Drawing.Size(500, 400);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.StartPosition = FormStartPosition.CenterParent;
-
-            var lblOrder = new Label() { Text = "Заказ:", Left = 10, Top = 20 };
-            cmbOrder = new ComboBox() { Left = 120, Top = 20, Width = 350, DropDownStyle = ComboBoxStyle.DropDownList };
-
-            var lblDate = new Label() { Text = "Дата поставки:", Left = 10, Top = 50 };
-            dtpDeliveryDate = new DateTimePicker() { Left = 120, Top = 50, Width = 350 };
-
-            var lblStatus = new Label() { Text = "Статус:", Left = 10, Top = 80 };
-            cmbStatus = new ComboBox() { Left = 120, Top = 80, Width = 350 };
-            cmbStatus.Items.AddRange(new string[] { "В обработке", "В пути", "Доставлено", "Отменено" });
-            cmbStatus.SelectedIndex = 0;
-
-            var lblNotes = new Label() { Text = "Примечания:", Left = 10, Top = 110 };
-            txtNotes = new TextBox() { Left = 120, Top = 110, Width = 350, Height = 100, Multiline = true };
-
-            btnSave = new Button() { Text = "Сохранить", Left = 120, Top = 300 };
-            btnCancel = new Button() { Text = "Отмена", Left = 220, Top = 300 };
-
-            btnSave.Click += BtnSave_Click;
-            btnCancel.Click += BtnCancel_Click;
-
-            this.Controls.AddRange(new Control[] { 
-                lblOrder, cmbOrder,
-                lblDate, dtpDeliveryDate,
-                lblStatus, cmbStatus,
-                lblNotes, txtNotes,
-                btnSave, btnCancel
-            });
-        }
-
-        private void LoadOrders()
-        {
-            using (var conn = Database.GetConnection())
-            {
-                var adapter = new SQLiteDataAdapter(@"
-                    SELECT Orders.Id, 
-                           Orders.Id || ' - ' || Suppliers.Name || ' от ' || Orders.OrderDate as DisplayName
-                    FROM Orders 
-                    LEFT JOIN Suppliers ON Orders.SupplierId = Suppliers.Id", conn);
-                var table = new DataTable();
-                adapter.Fill(table);
-                cmbOrder.DisplayMember = "DisplayName";
-                cmbOrder.ValueMember = "Id";
-                cmbOrder.DataSource = table;
-            }
-        }
-
-        private void BtnSave_Click(object sender, EventArgs e)
-        {
-            if (cmbOrder.SelectedValue == null)
-            {
-                MessageBox.Show("Выберите заказ!");
-                return;
-            }
-
-            OrderId = (int)cmbOrder.SelectedValue;
-            DeliveryDate = dtpDeliveryDate.Value;
-            Status = cmbStatus.Text;
-            Notes = txtNotes.Text;
-            this.DialogResult = DialogResult.OK;
-            this.Close();
-        }
-
-        private void BtnCancel_Click(object sender, EventArgs e)
-        {
-            this.DialogResult = DialogResult.Cancel;
-            this.Close();
         }
     }
 }
